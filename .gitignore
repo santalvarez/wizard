@@ -1,0 +1,6 @@
+Carthage/*
+.DS_Store
+*.provisionprofile
+*.xcodeproj/
+bazel-*
+.vscode/
