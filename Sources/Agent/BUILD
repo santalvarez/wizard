@@ -19,7 +19,7 @@ expand_template(
 
 filegroup(
     name = "agent_shared_files",
-    srcs = ["WZConstants.swift"],
+    srcs = ["WZConstants.swift", "WZXPCService/WZXPCProtocol.swift"],
     visibility = ["//:wizard_package_group"],
 )
 

@@ -26,9 +26,9 @@ http_archive(
 
 http_archive(
     name = "SwiftRuleEngine",
-    url = "https://github.com/santalvarez/swift-rule-engine/archive/refs/tags/1.3.0.tar.gz",
-    sha256 = "6a7eb6dd723456bdcb00361a2bb6f7400b6d598846089644eb84a70ef34f674b",
-    strip_prefix = "swift-rule-engine-1.3.0",
+    url = "https://github.com/santalvarez/swift-rule-engine/archive/refs/tags/1.4.4.tar.gz",
+    sha256 = "edb2cb6771044eec195219c4c4078788c7176c77146f9891e6844109b25095b8",
+    strip_prefix = "swift-rule-engine-1.4.4",
     build_file = "//tools:swift-rule-engine.BUILD",
 )
 
