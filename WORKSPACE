@@ -1,4 +1,5 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 # OpenSSL
 http_archive(
@@ -24,12 +25,10 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_apple/releases/download/3.1.1/rules_apple.3.1.1.tar.gz",
 )
 
-http_archive(
+git_repository(
     name = "SwiftRuleEngine",
-    url = "https://github.com/santalvarez/swift-rule-engine/archive/refs/tags/1.4.4.tar.gz",
-    sha256 = "edb2cb6771044eec195219c4c4078788c7176c77146f9891e6844109b25095b8",
-    strip_prefix = "swift-rule-engine-1.4.4",
-    build_file = "//tools:swift-rule-engine.BUILD",
+    remote = "https://github.com/santalvarez/swift-rule-engine.git",
+    tag = "1.5.0",
 )
 
 http_archive(
@@ -37,6 +36,11 @@ http_archive(
     sha256 = "f5c1f4bea9f00732ef9d54d333d9819d574de7020dbd9d081074232b93c10b2c",
     url = "https://github.com/MobileNativeFoundation/rules_xcodeproj/releases/download/1.13.0/release.tar.gz",
 )
+
+load("@SwiftRuleEngine//:deps.bzl",
+     "swift_rule_engine_dependencies")
+
+swift_rule_engine_dependencies()
 
 load(
     "@build_bazel_rules_apple//apple:repositories.bzl",
