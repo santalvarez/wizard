@@ -8,4 +8,4 @@
     <img src="./docs/images/wizard.png" height="128" alt="Wizard" />
 </p>
 
-Wizard is an open source EDR agent for macOS. It is built on top of the System Extensions Framework
+Wizard is an open source security agent for macOS. It is built on top of the System Extensions Framework

@@ -28,11 +28,6 @@ extension es_token_t {
     }
 }
 
-extension Logger {
-    static let subsystem = "com.santalvarez.wizard.Agent"
-    static let Agent = Logger(subsystem: subsystem, category: "default")
-}
-
 extension Encodable {
     func toDict(_ encoder: WZEncoder=WZEncoder.shared) -> [String: Any] {
         // SR-5501: https://bugs.swift.org/browse/SR-5501

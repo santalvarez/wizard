@@ -1,5 +1,5 @@
 build --action_env MACOSX_DEPLOYMENT_TARGET=13.0
-build --apple_generate_dsym --define=apple.propagate_embedded_extra_outputs=yes
-build:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
+# build --apple_generate_dsym --define=apple.propagate_embedded_extra_outputs=yes
+# build:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
 
 test --action_env MACOSX_DEPLOYMENT_TARGET=13.0

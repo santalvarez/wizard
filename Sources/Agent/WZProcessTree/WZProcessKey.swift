@@ -1,4 +1,5 @@
-// Copyright 2025 Santiago Alvarez.
+//
+// Copyright © 2025 Santiago Alvarez. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +12,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 import Foundation
 
 
-public let APP_GROUP_ID = "group.com.santalvarez.wizard"
+public struct WZProcessKey: Hashable {
+    public let pid: pid_t
+    public let pidVersion: pid_t
+}
+
+public typealias WZParentProcessKey = WZProcessKey
+
+
+extension audit_token_t {
+    public var key: WZProcessKey {
+        return .init(pid: audit_token_to_pid(self),
+                     pidVersion: audit_token_to_pidversion(self))
+    }
+}
