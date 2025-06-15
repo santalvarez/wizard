@@ -28,28 +28,26 @@ let kAppleRequirement = WZSignature.getRequirementFromString("anchor apple")!
 
 
 @StringSubscriptable(withKeys: false)
-struct WZSignature: Encodable {
-    var status: WZSignatureStatus = .unknown
-    var statusCode: OSStatus = 0
-    var statusDescription: String = ""
-    var isPlatformBinary: Bool?
-    var type: WZSignatureType? = .none
-    var signingDate: Date?
-    var format: String?
-    var bundleID: String?
-    var teamID: String?
-    var cdHash: String?
-    var flags: UInt32?
-    var mainExecutable: String?
-    var entitlements: [String: Any]?
-    var certificates: [WZCertificate]?
+public struct WZSignature: Encodable {
+    public var status: WZSignatureStatus = .unknown
+    public var statusCode: OSStatus = 0
+    public var statusDescription: String = ""
+    public var isPlatformBinary: Bool?
+    public var signingDate: Date?
+    public var format: String?
+    public var bundleID: String?
+    public var teamID: String?
+    public var cdHash: String?
+    public var flags: UInt32?
+    public var mainExecutable: String?
+    public var entitlements: [String: Any]?
+    public var certificates: [WZCertificate]?
 
     static private let keys: [String: PartialKeyPath<WZSignature>] = [
         "status": \.status.rawValue,
         "status_code": \.statusCode,
         "status_description": \.statusDescription,
         "is_platform_binary": \.isPlatformBinary,
-        "type": \.type?.rawValue,
         "signing_date": \.signingDate?.timeIntervalSince1970,
         "format": \.format,
         "bundle_id": \.bundleID,
@@ -66,10 +64,10 @@ struct WZSignature: Encodable {
     private enum CodingKeys: String, CodingKey {
         case status, statusDescription, statusCode, signingDate, format,
              flags, certificates, bundleID, teamID, cdHash,
-             mainExecutable, type, isPlatformBinary
+             mainExecutable, isPlatformBinary
     }
 
-    init() {}
+    public init() {}
 
     /**
      Given an audit token of a process, obtain the signature details dynamically or statically.
@@ -79,7 +77,7 @@ struct WZSignature: Encodable {
                            validation fails, the other attributes will be empty.
      - parameter req: Optional requirement to use for validation.
     */
-    init(auditToken: audit_token_t, validate: Bool=true, req: SecRequirement?=nil) {
+    public init(auditToken: audit_token_t, validate: Bool=true, req: SecRequirement?=nil) {
         do {
             let secCode = try Self.getSecCode(for: auditToken.data)
 
@@ -118,7 +116,7 @@ struct WZSignature: Encodable {
      - parameter validate: Whether to validate the signature or not. If the
                            validation fails, the other attributes will be empty.
     */
-    init(path: String, validate: Bool=true) {
+    public init(path: String, validate: Bool=true) {
         do {
             let staticCode = try Self.getStaticCode(for: path)
 
@@ -365,60 +363,7 @@ struct WZSignature: Encodable {
         return filteredDict
     }
 
-    static func validatePKGSignature(_ path: String, _ pubKeySHA256: String) -> Bool {
-        guard let xarFile = xar_open(path, READ) else {
-            return false
-        }
-
-        defer { xar_close(xarFile) }
-
-        guard let sig = xar_signature_first(xarFile) else {
-            return false
-        }
-
-        let ncerts = xar_signature_get_x509certificate_count(sig)
-
-        // Usually 3
-        guard ncerts > 0 else {
-            return false
-        }
-
-        var certs: [SecCertificate] = []
-        for i in 0..<ncerts {
-            var certLength: UInt32 = 0
-            var certData: UnsafePointer<UInt8>? = nil
-
-            guard xar_signature_get_x509certificate_data(sig, i, &certData, &certLength) == 0 else {
-                return false
-            }
-
-            let data = NSData(bytes: certData, length: Int(certLength))
-
-            guard let cert = SecCertificateCreateWithData(nil, data) else {
-                return false
-            }
-
-            certs.append(cert)
-        }
-
-        let policy = SecPolicyCreateBasicX509()
-        var trust: SecTrust? = nil
-        guard SecTrustCreateWithCertificates(certs as CFTypeRef, policy, &trust) == errSecSuccess else {
-            return false
-        }
-
-        if !SecTrustEvaluateWithError(trust!, nil) {
-            return false
-        }
-
-        let certData = SecCertificateCopyData(certs[0]) as Data
-
-        let certSHA256 = SHA256.hash(data: certData).compactMap { String(format: "%02x", $0) }.joined()
-
-        return certSHA256 == pubKeySHA256
-    }
-
-    static func isAppleSigned(secCode: SecCode) -> Bool {
+    public static func isAppleSigned(secCode: SecCode) -> Bool {
         do {
             try validateSecCode(secCode, with: kAppleRequirement)
             return true
@@ -427,7 +372,7 @@ struct WZSignature: Encodable {
         }
     }
 
-    static func isAppleSigned(staticCode: SecStaticCode) -> Bool {
+    public static func isAppleSigned(staticCode: SecStaticCode) -> Bool {
         do {
             try validateStaticCode(staticCode, with: kAppleRequirement)
             return true
@@ -438,22 +383,22 @@ struct WZSignature: Encodable {
 
 }
 
-struct WZSignatureError: Error, CustomStringConvertible {
-    let code: OSStatus
+public struct WZSignatureError: Error, CustomStringConvertible {
+    public let code: OSStatus
 
-    var description: String {
+    public var description: String {
         return SecCopyErrorMessageString(code, nil) as? String ?? ""
     }
 }
 
-enum WZSignatureStatus: String, Codable {
+public enum WZSignatureStatus: String, Codable {
     case valid
     case invalid
     case unsigned
     case notFound
     case unknown
 
-    init(code: OSStatus) {
+    public init(code: OSStatus) {
         switch code {
         case errSecSuccess:
             self = .valid
@@ -465,11 +410,4 @@ enum WZSignatureStatus: String, Codable {
             self = .invalid
         }
     }
-}
-
-
-enum WZSignatureType: String, Encodable {
-    case apple
-    case devID
-    case adhoc
 }

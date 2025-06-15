@@ -130,13 +130,13 @@ extension DateFormatter {
 }
 
 extension es_destination_type_t {
-    var toString: String {
+    public var toString: String {
         return (self == ES_DESTINATION_TYPE_EXISTING_FILE) ? "exists": "new"
     }
 }
 
 extension NETrafficDirection {
-    var toString: String {
+    public var toString: String {
         switch self {
         case .inbound:
             return "inbound"

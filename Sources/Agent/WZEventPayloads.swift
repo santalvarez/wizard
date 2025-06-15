@@ -293,7 +293,7 @@ public struct WZInboundPayload: WZEventPayload {
         self.flow = flow
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.flow, forKey: .flow)
     }
@@ -313,7 +313,7 @@ public struct WZOutboundPayload: WZEventPayload {
         self.url = flow.url?.path
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.flow, forKey: .flow)
         try container.encode(self.url, forKey: .url)
@@ -365,7 +365,7 @@ public class WZDNSReplyPayload: WZEventPayload {
         return header + dnsReplyData
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.flow, forKey: .flow)
         try container.encode(self.dnsReply, forKey: .dnsReply)
@@ -375,4 +375,26 @@ public class WZDNSReplyPayload: WZEventPayload {
         case flow, dnsReply
     }
 
+}
+
+
+@StringSubscriptable
+public struct WZCreatePayload: WZEventPayload {
+    public let file: WZFile
+    public let type: String
+}
+
+extension WZCreatePayload {
+    public init(_ event: es_event_create_t) {
+        if event.destination_type == ES_DESTINATION_TYPE_EXISTING_FILE {
+            self.type = "existing"
+            self.file = WZFile(file: event.destination.existing_file.pointee,
+                               lightweight: true)
+        } else {
+            self.type = "new"
+            // combine the dir and filename to get the path
+            let path = event.destination.new_path.dir.pointee.path.description + "/" + event.destination.new_path.filename.description
+            self.file = WZFile(path: path)
+        }
+    }
 }

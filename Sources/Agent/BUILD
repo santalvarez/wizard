@@ -26,7 +26,7 @@ filegroup(
 objc_library(
     name = "agent_objc_lib",
     hdrs = ["Agent-Bridging-Header.h"],
-    sdk_dylibs = ["bsm", "EndpointSecurity", "resolv", "xar"],
+    sdk_dylibs = ["bsm", "EndpointSecurity", "resolv"],
     visibility = ["//:wizard_package_group"],
 )
 

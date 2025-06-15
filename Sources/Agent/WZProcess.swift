@@ -19,15 +19,6 @@ import EndpointSecurity
 import SwiftRuleEngine
 import OSLog
 
-private enum ArgDataError: Error {
-    case failed
-}
-
-private enum ArgParserError: Error {
-    case unexpectedEnd
-    case argumentIsNotUTF8
-}
-
 
 /// Contains information about a process
 @StringSubscriptable
@@ -148,157 +139,20 @@ public final class WZProcess {
         cachedExecutable.metadata = process.executable.pointee.stat
         return cachedExecutable
     }
-
-    static func getPathFromPID(pid: pid_t) -> String {
-        let pathBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: Int(MAXPATHLEN))
-        defer {
-            pathBuffer.deallocate()
-        }
-
-        guard proc_pidpath(pid, pathBuffer, UInt32(MAXPATHLEN)) > 0 else {
-            return ""
-        }
-        let path = String(cString: pathBuffer)
-        return path
-    }
-
-    // https://github.com/themittenmac/TrueTree/blob/99972da3963bd57b6a64563c36b87030e024d1b9/Src/process.swift#L70
-    typealias rpidFunc = @convention(c) (CInt) -> CInt
-    static func getResponsiblePID(pid: pid_t) -> CInt? {
-        // Get responsible pid using private Apple API
-        let rpidSym:UnsafeMutableRawPointer! = dlsym(UnsafeMutableRawPointer(bitPattern: -1), "responsibility_get_pid_responsible_for_pid")
-
-        let pidCheck = unsafeBitCast(rpidSym, to: rpidFunc.self)(CInt(pid))
-
-        if (pidCheck == -1) {
-            return nil
-        }
-
-        return pidCheck
-    }
-
-    static func getPIDInfo(pid: pid_t) -> proc_bsdinfo? {
-        let pidInfoSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
-        let pidInfo = UnsafeMutablePointer<proc_bsdinfo>.allocate(capacity: 1)
-        defer {
-            pidInfo.deallocate()
-        }
-
-        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, pidInfo, pidInfoSize) == pidInfoSize  else {
-            return nil
-        }
-
-        return pidInfo.pointee
-    }
-
-
-    static func getPIDEproc(pid: pid_t) -> eproc? {
-        var kinfo = kinfo_proc()
-        var size = MemoryLayout<kinfo_proc>.stride
-
-
-        var mib = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
-
-        guard sysctl(&mib, 4, &kinfo, &size, nil, 0) == noErr else {
-            return nil
-        }
-
-        return kinfo.kp_eproc
-    }
-
-    /**
-     Return arguments for given pid
-    */
-    static func getArguments(for pid: pid_t) -> [String]? {
-        // If the process isExec then we should get the arguments using the ppid else we should get the arguments using the pid
-
-        guard let argumentsData = try? argumentData(for: pid),
-              let arguments =  try? argumentsFromArgumentData(argumentsData) else {
-            return nil
-        }
-        return arguments
-    }
-
-    private static func argumentData(for pid: pid_t) throws -> Data {
-        // There should be a better way to get a process’s arguments
-        // (FB9149624) but right now you have to use `KERN_PROCARGS2`
-        // and then parse the results.
-        var argMax: CInt = 0
-        var argMaxSize = size_t(MemoryLayout.size(ofValue: argMax))
-        guard sysctlbyname("kern.argmax", &argMax, &argMaxSize, nil, 0) >= 0 else {
-            throw ArgDataError.failed
-        }
-        precondition(argMaxSize != 0)
-        var result = Data(count: Int(argMax))
-        let resultSize = try result.withUnsafeMutableBytes { buf -> Int in
-            var mib: [CInt] = [
-                CTL_KERN,
-                KERN_PROCARGS2,
-                pid
-            ]
-            var bufSize = buf.count
-            guard sysctl(&mib, CUnsignedInt(mib.count), buf.baseAddress!, &bufSize, nil, 0) >= 0 else {
-                throw ArgDataError.failed
-            }
-            return bufSize
-        }
-        result = result.prefix(resultSize)
-        return result
-    }
-
-    private static func argumentsFromArgumentData(_ data: Data) throws -> [String] {
-
-        // <https://opensource.apple.com/source/adv_cmds/adv_cmds-176/ps/print.c.auto.html>
-
-        // Parse `argc`.  We’re assuming the value is little endian here, which is
-        // currently accurate but it could be a problem if we’ve “gone back to
-        // metric”.
-
-        var remaining = data[...]
-        guard remaining.count >= 6 else {
-            throw ArgParserError.unexpectedEnd
-        }
-        let count32 = remaining.prefix(4).reversed().reduce(0, { $0 << 8 | UInt32($1) })
-        remaining = remaining.dropFirst(4)
-
-        // Skip the saved executable path.
-
-        remaining = remaining.drop(while: { $0 != 0 })
-        remaining = remaining.drop(while: { $0 == 0 })
-
-        // Now parse `argv[0]` through `argv[argc - 1]`.
-
-        var result: [String] = []
-        for _ in 0..<count32 {
-            let argBytes = remaining.prefix(while: { $0 != 0 })
-            guard let arg = String(bytes: argBytes, encoding: .utf8) else {
-                throw ArgParserError.argumentIsNotUTF8
-            }
-            result.append(arg)
-            remaining = remaining.dropFirst(argBytes.count)
-            guard remaining.count != 0 else {
-                throw ArgParserError.unexpectedEnd
-            }
-            remaining = remaining.dropFirst()
-        }
-        return result
-    }
-
 }
 
 
 extension WZProcess {
     public convenience init?(auditToken: audit_token_t) {
         let pid = audit_token_to_pid(auditToken)
-        guard let pidInfo = Self.getPIDInfo(pid: pid),
+        guard let pidInfo = WZUtils.getPIDInfo(pid: pid),
               let parentAuditToken = try? audit_token_t(pid: pid_t(pidInfo.pbi_ppid)) else {
             return nil
         }
-        // TODO: agregar el rpid aca
         self.init(file: WZFile(auditToken: auditToken),
                   auditToken: auditToken, parentAuditToken: parentAuditToken,
                   startTime: Int(pidInfo.pbi_start_tvsec),
-                  arguments: Self.getArguments(for: pid)?.joined(separator: " "))
+                  arguments: WZUtils.getArguments(for: pid)?.joined(separator: " "))
     }
 
     public convenience init(proc: es_process_t, isExecParent: Bool = false,
@@ -314,7 +168,7 @@ extension WZProcess {
                   originalPPID: proc.original_ppid,
                   startTime: proc.start_time.tv_sec,
                   sessionID: proc.session_id, tty: proc.tty?.pointee.path.description,
-                  arguments: Self.getArguments(for: argsPID)?.joined(separator: " "),
+                  arguments: WZUtils.getArguments(for: argsPID)?.joined(separator: " "),
                   isExecParent: isExecParent)
     }
 

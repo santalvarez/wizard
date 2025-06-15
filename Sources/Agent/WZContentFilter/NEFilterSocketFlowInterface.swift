@@ -39,7 +39,7 @@ public protocol NEFilterSocketFlowInterface: Encodable, StringSubscriptable {
 
 extension NEFilterSocketFlow: @retroactive StringSubscriptable {}
 extension NEFilterSocketFlow: NEFilterSocketFlowInterface {
-    var remoteIP: String? {
+    public var remoteIP: String? {
         if #available(macOS 15.0, *) {
             guard let remoteEndpoint = remoteFlowEndpoint else {
                 return nil
@@ -64,7 +64,7 @@ extension NEFilterSocketFlow: NEFilterSocketFlowInterface {
             return remoteEndpoint.hostname
         }
     }
-    var remotePort: Int? {
+    public var remotePort: Int? {
         if #available(macOS 15.0, *) {
             guard let remoteEndpoint = remoteFlowEndpoint else {
                 return nil
@@ -80,7 +80,7 @@ extension NEFilterSocketFlow: NEFilterSocketFlowInterface {
             return Int(remoteEndpoint.port)
         }
     }
-    var localIP: String? {
+    public var localIP: String? {
         if #available(macOS 15.0, *) {
             guard let localEndpoint = localFlowEndpoint else {
                 return nil
@@ -105,7 +105,7 @@ extension NEFilterSocketFlow: NEFilterSocketFlowInterface {
             return localEndpoint.hostname
         }
     }
-    var localPort: Int? {
+    public var localPort: Int? {
         if #available(macOS 15.0, *) {
             guard let localEndpoint = localFlowEndpoint else {
                 return nil

@@ -15,7 +15,7 @@
 //
 
 import Foundation
-import Agent
+@testable import Agent
 
 
 extension audit_token_t {
@@ -64,7 +64,9 @@ extension WZProcess {
 
 extension NEFilterSocketFlowMock {
     static func buildRandomInbound() -> NEFilterSocketFlowMock {
-        return NEFilterSocketFlowMock(url: nil, direction: .inbound, sourceAppAuditToken: nil, remoteIP: "192.168.0.40", remotePort: 123, localIP: "192.168.0.35", localPort: 234, identifier: .init(), remoteHostname: nil, socketFamily: 1, socketType: 1, socketProtocol: IPPROTO_TCP)
+        return NEFilterSocketFlowMock(url: nil, direction: .inbound, sourceAppAuditToken: nil, remoteIP: "192.168.0.40",
+                                      remotePort: 123, localIP: "192.168.0.35", localPort: 234, identifier: .init(),
+                                      remoteHostname: nil, socketFamily: 1, socketType: 1, socketProtocol: IPPROTO_TCP)
     }
 }
 
@@ -82,12 +84,12 @@ extension WZEvent {
                        eventClass: .es, seqNum: 1, globalSeqNum: 1)
     }
 
-    static func buildRandomFWInbound() -> WZEvent {
+    static func buildRandomInbound() -> WZEvent {
         let process = WZProcess.buildRandom()
-        let payload = FWInboundPayload(NEFilterSocketFlowMock.buildRandomInbound())
+        let payload = WZInboundPayload(NEFilterSocketFlowMock.buildRandomInbound())
         return WZEvent(timestamp: Date().timeIntervalSince1970,
                        machTime: WZUtils.machTimeToNanoseconds(machTime: mach_absolute_time()),
-                       process: process, payload: payload, eventType: .fw_inbound,
+                       process: process, payload: payload, eventType: .ne_inbound,
                        eventClass: .es, seqNum: 1, globalSeqNum: 1)
     }
 
@@ -117,7 +119,14 @@ extension WZEvent {
                        process: process,
                        payload: WZExitPayload(stat: 0),
                        eventType: .es_exit, eventClass: .es)
+    }
 
+    static func buildCreateEvent(with machTime: UInt64, with process: WZProcess) -> WZEvent {
+        return WZEvent(timestamp: Date().timeIntervalSince1970,
+                       machTime: machTime,
+                       process: process,
+                       payload: WZCreatePayload(file: WZFile.buildRandom(), type: "existing"),
+                       eventType: .es_create, eventClass: .es)
     }
 
     /// Return the child process of this event (for fork and exec)

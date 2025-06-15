@@ -28,7 +28,7 @@ http_archive(
 git_repository(
     name = "SwiftRuleEngine",
     remote = "https://github.com/santalvarez/swift-rule-engine.git",
-    tag = "1.5.0",
+    tag = "1.5.1",
 )
 
 http_archive(

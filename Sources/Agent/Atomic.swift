@@ -27,7 +27,7 @@ public final class Atomic<Value> {
         self._value = wrappedValue
     }
 
-    var wrappedValue: Value {
+    public var wrappedValue: Value {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -39,7 +39,7 @@ public final class Atomic<Value> {
     }
 
     /// Thread-safe updates of value.
-    func mutate(_ transform: (inout Value) -> Void) {
+    public func mutate(_ transform: (inout Value) -> Void) {
         self.lock.withLock {
             transform(&self._value)
         }
@@ -64,7 +64,7 @@ public final class LazyAtomic<Value> {
         self.initializer = initializer
     }
 
-    var wrappedValue: Value {
+    public var wrappedValue: Value {
         get {
             lock.lock()
             defer { lock.unlock() }

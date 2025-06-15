@@ -107,21 +107,6 @@ public final class WZFile: Encodable {
         return slices
     }
 
-    static func getPath(for token: audit_token_t) -> String {
-        var mutableToken = token
-
-        var buffer = [CChar](repeating: 0, count: Int(PROC_PIDPATHINFO_SIZE))
-
-        let bytesCopied = withUnsafeMutablePointer(to: &mutableToken) { tokenPtr in
-            proc_pidpath_audittoken(tokenPtr, &buffer, UInt32(buffer.count))
-        }
-
-        if bytesCopied > 0 {
-            return String(cString: buffer)
-        } else {
-            return ""
-        }
-    }
 }
 
 
@@ -163,7 +148,7 @@ extension WZFile {
     }
 
     public convenience init(auditToken: audit_token_t) {
-        let path = WZFile.getPath(for: auditToken)
+        let path = WZUtils.getPath(from: auditToken)
         self.init(path: path, pathTruncated: false,
                   name: (path as NSString).lastPathComponent,
                   metadata: Self.getStat(path: path))

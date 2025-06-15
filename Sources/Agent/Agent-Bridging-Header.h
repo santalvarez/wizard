@@ -26,4 +26,3 @@
 #import <dns_util.h>
 #import <libproc.h>
 #import <yara.h>
-#import <xar/xar.h>

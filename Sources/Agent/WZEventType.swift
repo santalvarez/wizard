@@ -26,6 +26,7 @@ public enum WZEventType: String, Encodable, CaseIterable, CodingKeyRepresentable
     // Endpoint Security Events
     case es_exec
     case es_fork
+    case es_create
     case es_mount
     case es_unmount
     case es_remount
@@ -64,6 +65,9 @@ public enum WZEventType: String, Encodable, CaseIterable, CodingKeyRepresentable
             self = .es_exec
         case ES_EVENT_TYPE_NOTIFY_FORK:
             self = .es_fork
+        case ES_EVENT_TYPE_AUTH_CREATE,
+             ES_EVENT_TYPE_NOTIFY_CREATE:
+            self = .es_create
         case ES_EVENT_TYPE_AUTH_MOUNT,
              ES_EVENT_TYPE_NOTIFY_MOUNT:
             self = .es_mount

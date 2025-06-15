@@ -20,19 +20,19 @@ import SwiftRuleEngine
 
 
 @StringSubscriptable
-struct WZDNSReply: Encodable {
-    let status: UInt32
-    let header: WZDNSHeader
-    let question: [WZDNSQuestion]
-    let answer: [WZDNSResourceRecord]
-    let authority: [WZDNSResourceRecord]
-    let additional: [WZDNSResourceRecord]
+public struct WZDNSReply: Encodable {
+    public let status: UInt32
+    public let header: WZDNSHeader
+    public let question: [WZDNSQuestion]
+    public let answer: [WZDNSResourceRecord]
+    public let authority: [WZDNSResourceRecord]
+    public let additional: [WZDNSResourceRecord]
 
-    var questionNames: [String] {
+    public var questionNames: [String] {
         return question.map { $0.name }
     }
 
-    init(_ reply: UnsafeMutablePointer<dns_reply_t>) {
+    public init(_ reply: UnsafeMutablePointer<dns_reply_t>) {
         self.status = reply.pointee.status
         self.header = WZDNSHeader(reply.pointee.header)
 
@@ -64,15 +64,15 @@ struct WZDNSReply: Encodable {
 }
 
 @StringSubscriptable
-struct WZDNSHeader: Encodable {
-    let xid: UInt16
-    let flags: UInt16
-    let qdcount: UInt16
-    let ancount: UInt16
-    let nscount: UInt16
-    let arcount: UInt16
+public struct WZDNSHeader: Encodable {
+    public let xid: UInt16
+    public let flags: UInt16
+    public let qdcount: UInt16
+    public let ancount: UInt16
+    public let nscount: UInt16
+    public let arcount: UInt16
 
-    init(_ header: UnsafeMutablePointer<dns_header_t>) {
+    public init(_ header: UnsafeMutablePointer<dns_header_t>) {
         self.xid = header.pointee.xid
         self.flags = header.pointee.flags
         self.qdcount = header.pointee.qdcount
@@ -83,12 +83,12 @@ struct WZDNSHeader: Encodable {
 }
 
 @StringSubscriptable(withKeys: false)
-struct WZDNSQuestion: Encodable {
-    let name: String
-    let type: WZDNSType
-    let `class`: UInt16
+public struct WZDNSQuestion: Encodable {
+    public let name: String
+    public let type: WZDNSType
+    public let `class`: UInt16
 
-    init(_ question: UnsafeMutablePointer<dns_question_t>) {
+    public init(_ question: UnsafeMutablePointer<dns_question_t>) {
         self.name = String(cString: question.pointee.name)
         self.type = WZDNSType(Int(question.pointee.dnstype))
         self.class = question.pointee.dnsclass
@@ -101,7 +101,7 @@ struct WZDNSQuestion: Encodable {
     ]
 }
 
-enum WZDNSType: String, Encodable {
+public enum WZDNSType: String, Encodable {
     case A
     case AAAA
     case CNAME
@@ -113,7 +113,7 @@ enum WZDNSType: String, Encodable {
     case PTR
     case UNKNOWN
 
-    init(_ type: Int) {
+    public init(_ type: Int) {
         switch type {
         case kDNSServiceType_A:  // ipv4
             self = .A
@@ -140,14 +140,14 @@ enum WZDNSType: String, Encodable {
 }
 
 @StringSubscriptable
-struct WZDNSResourceRecord: Encodable {
-    let name: String
-    let type: WZDNSType
-    let `class`: UInt16
-    let ttl: UInt32
-    let data: WZDNSRecordProtocol
+public struct WZDNSResourceRecord: Encodable {
+    public let name: String
+    public let type: WZDNSType
+    public let `class`: UInt16
+    public let ttl: UInt32
+    public let data: WZDNSRecordProtocol
 
-    init?(_ resource: UnsafeMutablePointer<dns_resource_record_t>) {
+    public init?(_ resource: UnsafeMutablePointer<dns_resource_record_t>) {
         self.name = String(cString: resource.pointee.name)
         self.type = WZDNSType(Int(resource.pointee.dnstype))
         self.class = resource.pointee.dnsclass
@@ -177,7 +177,7 @@ struct WZDNSResourceRecord: Encodable {
         }
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(type, forKey: .type)
@@ -195,44 +195,44 @@ struct WZDNSResourceRecord: Encodable {
     }
 }
 
-protocol WZDNSRecordProtocol: Encodable {
+public protocol WZDNSRecordProtocol: Encodable {
 }
 
 @StringSubscriptable
-struct WZDNSRecordA: WZDNSRecordProtocol {
-    let addr: String
+public struct WZDNSRecordA: WZDNSRecordProtocol {
+    public let addr: String
 
-    init(_ record: UnsafeMutablePointer<dns_address_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_address_record_t>) {
         self.addr = record.pointee.addr.description
     }
 
-    init(_ record: UnsafeMutablePointer<dns_in6_address_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_in6_address_record_t>) {
         self.addr = record.pointee.addr.description
     }
 }
 
 @StringSubscriptable
-struct WZDNSRecordMX: WZDNSRecordProtocol {
-    let name: String
-    let preference: UInt16
+public struct WZDNSRecordMX: WZDNSRecordProtocol {
+    public let name: String
+    public let preference: UInt16
 
-    init(_ record: UnsafeMutablePointer<dns_MX_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_MX_record_t>) {
         self.name = String(cString: record.pointee.name)
         self.preference = record.pointee.preference
     }
 }
 
 @StringSubscriptable
-struct WZDNSRecordSOA: WZDNSRecordProtocol {
-    let serial: UInt32
-    let refresh: UInt32
-    let retry: UInt32
-    let expire: UInt32
-    let minimum: UInt32
-    let rname: String
-    let mname: String
+public struct WZDNSRecordSOA: WZDNSRecordProtocol {
+    public let serial: UInt32
+    public let refresh: UInt32
+    public let retry: UInt32
+    public let expire: UInt32
+    public let minimum: UInt32
+    public let rname: String
+    public let mname: String
 
-    init(_ record: UnsafeMutablePointer<dns_SOA_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_SOA_record_t>) {
         self.serial = record.pointee.serial
         self.refresh = record.pointee.refresh
         self.retry = record.pointee.retry
@@ -244,10 +244,10 @@ struct WZDNSRecordSOA: WZDNSRecordProtocol {
 }
 
 @StringSubscriptable
-struct WZDNSRecordTXT: WZDNSRecordProtocol {
-    let strings: [String]
+public struct WZDNSRecordTXT: WZDNSRecordProtocol {
+    public let strings: [String]
 
-    init(_ record: UnsafeMutablePointer<dns_TXT_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_TXT_record_t>) {
         var strArray: [String] = []
         guard record.pointee.string_count > 0 else {
             self.strings = []
@@ -265,13 +265,13 @@ struct WZDNSRecordTXT: WZDNSRecordProtocol {
 }
 
 @StringSubscriptable
-struct WZDNSRecordSRV: WZDNSRecordProtocol {
-    let port: UInt16
-    let priority: UInt16
-    let weight: UInt16
-    let target: String
+public struct WZDNSRecordSRV: WZDNSRecordProtocol {
+    public let port: UInt16
+    public let priority: UInt16
+    public let weight: UInt16
+    public let target: String
 
-    init(_ record: UnsafeMutablePointer<dns_SRV_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_SRV_record_t>) {
         self.port = record.pointee.port
         self.priority = record.pointee.priority
         self.weight = record.pointee.weight
@@ -280,10 +280,10 @@ struct WZDNSRecordSRV: WZDNSRecordProtocol {
 }
 
 @StringSubscriptable
-struct WZDNSRecordDomainName: WZDNSRecordProtocol {
-    let name: String
+public struct WZDNSRecordDomainName: WZDNSRecordProtocol {
+    public let name: String
 
-    init(_ record: UnsafeMutablePointer<dns_domain_name_record_t>) {
+    public init(_ record: UnsafeMutablePointer<dns_domain_name_record_t>) {
         self.name = String(cString: record.pointee.name)
     }
 }

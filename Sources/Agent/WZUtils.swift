@@ -16,6 +16,15 @@ import Foundation
 import OSLog
 import CryptoKit
 
+private enum ArgDataError: Error {
+    case failed
+}
+
+private enum ArgParserError: Error {
+    case unexpectedEnd
+    case argumentIsNotUTF8
+}
+
 
 public struct WZUtils {
 
@@ -93,6 +102,127 @@ public struct WZUtils {
         }
         return nil
     }
+
+    public static func getArguments(for pid: pid_t) -> [String]? {
+        // If the process isExec then we should get the arguments using the ppid else we should get the arguments using the pid
+
+        guard let argumentsData = try? argumentData(for: pid),
+              let arguments =  try? argumentsFromArgumentData(argumentsData) else {
+            return nil
+        }
+        return arguments
+    }
+
+    private static func argumentData(for pid: pid_t) throws -> Data {
+        // There should be a better way to get a process’s arguments
+        // (FB9149624) but right now you have to use `KERN_PROCARGS2`
+        // and then parse the results.
+        var argMax: CInt = 0
+        var argMaxSize = size_t(MemoryLayout.size(ofValue: argMax))
+        guard sysctlbyname("kern.argmax", &argMax, &argMaxSize, nil, 0) >= 0 else {
+            throw ArgDataError.failed
+        }
+        precondition(argMaxSize != 0)
+        var result = Data(count: Int(argMax))
+        let resultSize = try result.withUnsafeMutableBytes { buf -> Int in
+            var mib: [CInt] = [
+                CTL_KERN,
+                KERN_PROCARGS2,
+                pid
+            ]
+            var bufSize = buf.count
+            guard sysctl(&mib, CUnsignedInt(mib.count), buf.baseAddress!, &bufSize, nil, 0) >= 0 else {
+                throw ArgDataError.failed
+            }
+            return bufSize
+        }
+        result = result.prefix(resultSize)
+        return result
+    }
+
+    private static func argumentsFromArgumentData(_ data: Data) throws -> [String] {
+
+        // <https://opensource.apple.com/source/adv_cmds/adv_cmds-176/ps/print.c.auto.html>
+
+        // Parse `argc`.  We’re assuming the value is little endian here, which is
+        // currently accurate but it could be a problem if we’ve “gone back to
+        // metric”.
+
+        var remaining = data[...]
+        guard remaining.count >= 6 else {
+            throw ArgParserError.unexpectedEnd
+        }
+        let count32 = remaining.prefix(4).reversed().reduce(0, { $0 << 8 | UInt32($1) })
+        remaining = remaining.dropFirst(4)
+
+        // Skip the saved executable path.
+
+        remaining = remaining.drop(while: { $0 != 0 })
+        remaining = remaining.drop(while: { $0 == 0 })
+
+        // Now parse `argv[0]` through `argv[argc - 1]`.
+
+        var result: [String] = []
+        for _ in 0..<count32 {
+            let argBytes = remaining.prefix(while: { $0 != 0 })
+            guard let arg = String(bytes: argBytes, encoding: .utf8) else {
+                throw ArgParserError.argumentIsNotUTF8
+            }
+            result.append(arg)
+            remaining = remaining.dropFirst(argBytes.count)
+            guard remaining.count != 0 else {
+                throw ArgParserError.unexpectedEnd
+            }
+            remaining = remaining.dropFirst()
+        }
+        return result
+    }
+
+    public static func getPath(from pid: pid_t) -> String {
+        let pathBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: Int(MAXPATHLEN))
+        defer {
+            pathBuffer.deallocate()
+        }
+
+        guard proc_pidpath(pid, pathBuffer, UInt32(MAXPATHLEN)) > 0 else {
+            return ""
+        }
+        let path = String(cString: pathBuffer)
+        return path
+    }
+
+    public static func getPath(from token: audit_token_t) -> String {
+        var mutableToken = token
+
+        var buffer = [CChar](repeating: 0, count: Int(PROC_PIDPATHINFO_SIZE))
+
+        let bytesCopied = withUnsafeMutablePointer(to: &mutableToken) { tokenPtr in
+            proc_pidpath_audittoken(tokenPtr, &buffer, UInt32(buffer.count))
+        }
+
+        if bytesCopied > 0 {
+            return String(cString: buffer)
+        } else {
+            return ""
+        }
+    }
+
+
+
+    public static func getPIDInfo(pid: pid_t) -> proc_bsdinfo? {
+        let pidInfoSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
+        let pidInfo = UnsafeMutablePointer<proc_bsdinfo>.allocate(capacity: 1)
+        defer {
+            pidInfo.deallocate()
+        }
+
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, pidInfo, pidInfoSize) == pidInfoSize  else {
+            return nil
+        }
+
+        return pidInfo.pointee
+    }
+
 
 }
 
